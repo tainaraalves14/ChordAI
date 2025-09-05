@@ -60,3 +60,5 @@ A arquitetura do projeto é dividida em duas fases distintas, visando otimizar o
 * **Feedback do Usuário:** Adicionar um sistema de "gostei/não gostei" para refinar o modelo de recomendação com base nas interações do usuário.
 * **Visualização de Dados:** Implementar uma visualização interativa (e.g., usando t-SNE) para plotar as músicas em um gráfico 2D, mostrando visualmente como os 'clusters' se formam.
 * **API de Recomendação:** Criar uma API RESTful para que o sistema possa ser facilmente integrado com outras aplicações.
+
+![alt text](image-1.png)
