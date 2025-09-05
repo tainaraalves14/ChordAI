@@ -2,7 +2,7 @@
 
 ---
 
-# Documentação Técnica do Projeto: Sistema de Recomendação de Músicas com Análise Acústica
+# Sistema de Recomendação de Músicas com Análise Acústica
 
 ## 1. Visão Geral e Objetivo do Projeto
 
