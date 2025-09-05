@@ -23,6 +23,14 @@ if not os.path.exists(FEATURES_CSV) or not os.path.exists(MODEL_FILE):
 df = pd.read_csv(FEATURES_CSV)
 kmeans = joblib.load(MODEL_FILE)
 
+# ----- Função utilitária para garantir float32 e 2D -----
+def prepare_features(features):
+    """Converte qualquer array para float32 e garante 2D para o KMeans."""
+    features = np.asarray(features, dtype=np.float32)
+    if features.ndim == 1:
+        features = features.reshape(1, -1)
+    return features
+
 # ----- Função para extrair features do upload -----
 def extract_features_from_uploaded_file(uploaded_file):
     """Extrai características de um arquivo de áudio carregado pelo Streamlit."""
@@ -33,13 +41,18 @@ def extract_features_from_uploaded_file(uploaded_file):
             tmp_file.write(uploaded_file.read())
             tmp_path = tmp_file.name
         
-        y, sr = librosa.load(tmp_path, mono=True, duration=30)
-        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-        mfccs_mean = np.mean(mfccs.T, axis=0)
+        # Carregar áudio com tipo float32 explicitamente
+        y, sr = librosa.load(tmp_path, mono=True, duration=30, dtype=np.float32)
         
-        # Converte para float32 e garante 2D
-        features = np.array(mfccs_mean, dtype=np.float32).reshape(1, -1)
-        return features
+        # Extrair MFCCs e garantir float32
+        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13).astype(np.float32)
+        mfccs_mean = np.mean(mfccs.T, axis=0, dtype=np.float32)
+        
+        # Verificar tipo de dados
+        if mfccs_mean.dtype != np.float32:
+            mfccs_mean = mfccs_mean.astype(np.float32)
+        
+        return prepare_features(mfccs_mean)
     except Exception as e:
         st.error(f"Erro ao processar o arquivo: {e}")
         return None
@@ -50,10 +63,7 @@ def extract_features_from_uploaded_file(uploaded_file):
 # ----- Função para gerar recomendações -----
 def get_recommendations(input_features, num_recommendations=5):
     """Gera recomendações com base nas features da música de entrada."""
-    # Converte input_features para float32 e garante 2D
-    input_features = np.array(input_features, dtype=np.float32)
-    if input_features.ndim == 1:
-        input_features = input_features.reshape(1, -1)
+    input_features = prepare_features(input_features)
 
     try:
         input_cluster = kmeans.predict(input_features)[0]
@@ -61,8 +71,10 @@ def get_recommendations(input_features, num_recommendations=5):
         st.error(f"Erro ao classificar o áudio: {e}")
         return []
 
+    # Seleciona músicas do mesmo cluster
     same_cluster_songs = df[df['cluster'] == input_cluster].copy()
 
+    # Para evitar recomendar o próprio arquivo, se houver
     input_filename = "Uploaded File"
     if input_filename in same_cluster_songs['filename'].values:
         same_cluster_songs = same_cluster_songs[same_cluster_songs['filename'] != input_filename]
@@ -71,7 +83,8 @@ def get_recommendations(input_features, num_recommendations=5):
         return "Nenhuma recomendação encontrada neste cluster."
 
     recommendations = same_cluster_songs['filename'].sample(
-        n=min(num_recommendations, len(same_cluster_songs))
+        n=min(num_recommendations, len(same_cluster_songs)),
+        random_state=42  # garante reprodutibilidade
     )
     return recommendations.tolist()
 
@@ -89,11 +102,10 @@ if uploaded_file is not None:
             input_features = extract_features_from_uploaded_file(uploaded_file)
 
             if input_features is not None:
-                # Converte para float32 e garante 2D antes de chamar predict
-                input_features = np.array(input_features, dtype=np.float32)
-                if input_features.ndim == 1:
-                    input_features = input_features.reshape(1, -1)
-
+                # Verificar tipo de dados antes da predição
+                if input_features.dtype != np.float32:
+                    input_features = input_features.astype(np.float32)
+                
                 # Exibe o cluster previsto
                 try:
                     input_cluster = kmeans.predict(input_features)[0]

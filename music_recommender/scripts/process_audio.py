@@ -14,9 +14,17 @@ OUTPUT_CSV = os.path.abspath(os.path.join(BASE_DIR, '..', 'processed_features.cs
 
 def extract_features(file_path):
     try:
-        y, sr = librosa.load(file_path, mono=True, duration=30)
-        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-        mfccs_mean = np.mean(mfccs.T, axis=0)
+        # Carregar áudio com dtype=float32 explicitamente
+        y, sr = librosa.load(file_path, mono=True, duration=30, dtype=np.float32)
+        
+        # Extrair MFCCs e garantir float32
+        mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13).astype(np.float32)
+        mfccs_mean = np.mean(mfccs.T, axis=0, dtype=np.float32)
+        
+        # Verificar tipo de dados
+        if mfccs_mean.dtype != np.float32:
+            mfccs_mean = mfccs_mean.astype(np.float32)
+        
         return mfccs_mean
     except Exception as e:
         print(f"Erro ao processar {file_path}: {e}")
@@ -43,6 +51,10 @@ def process_all_songs():
 
     if features_list:
         features_df = pd.DataFrame(features_list)
+        # Garantir que as colunas numéricas sejam float32
+        for col in features_df.columns:
+            if col.startswith('mfcc_'):
+                features_df[col] = features_df[col].astype(np.float32)
         features_df.to_csv(OUTPUT_CSV, index=False)
         print(f"Características salvas em {OUTPUT_CSV}")
     else:

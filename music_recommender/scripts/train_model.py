@@ -3,6 +3,7 @@ import pandas as pd
 from sklearn.cluster import KMeans
 import joblib
 import argparse
+import numpy as np
 
 # -----------------------------
 # 1️⃣ Caminhos absolutos
@@ -27,17 +28,30 @@ def train_model(n_clusters=10):
     # Carrega os dados
     df = pd.read_csv(FEATURES_CSV)
     
+    # Separar as features (excluindo 'filename')
     if 'filename' in df.columns:
         features = df.drop('filename', axis=1)
     else:
         features = df.copy()
 
+    # Garantir que as features sejam float32
+    features = features.astype(np.float32)
+    
     print(f"Treinando o modelo K-Means com {n_clusters} clusters...")
     kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
     kmeans.fit(features)
 
     # Adiciona os clusters ao DataFrame
     df['cluster'] = kmeans.labels_
+    
+    # Garantir que a coluna 'cluster' seja int32 para consistência
+    df['cluster'] = df['cluster'].astype(np.int32)
+    
+    # Garantir que as colunas de features no DataFrame sejam float32 antes de salvar
+    for col in df.columns:
+        if col.startswith('mfcc_'):
+            df[col] = df[col].astype(np.float32)
+    
     df.to_csv(FEATURES_CSV, index=False)
 
     # Salva o modelo
