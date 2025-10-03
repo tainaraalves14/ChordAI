@@ -61,4 +61,4 @@ A arquitetura do projeto é dividida em duas fases distintas, visando otimizar o
 * **Visualização de Dados:** Implementar uma visualização interativa (e.g., usando t-SNE) para plotar as músicas em um gráfico 2D, mostrando visualmente como os 'clusters' se formam.
 * **API de Recomendação:** Criar uma API RESTful para que o sistema possa ser facilmente integrado com outras aplicações.
 
-![alt text](image-1.png)
+
